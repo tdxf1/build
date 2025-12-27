@@ -1225,51 +1225,6 @@ void CreateLabelAndEdit(HWND parent, const char* labelText, int x, int y, int w,
     SendMessage(*outEdit, WM_SETFONT, (WPARAM)hFontUI, TRUE);
     SendMessage(*outEdit, EM_SETLIMITTEXT, (editId == ID_SERVER_EDIT || editId == ID_TOKEN_EDIT) ? MAX_URL_LEN : MAX_SMALL_LEN, 0);
 }
-
-void CreateControls(HWND hwnd) {
-    RECT rect;
-    GetClientRect(hwnd, &rect);
-    int winW = rect.right;
-    int margin = Scale(20);
-    int contentW = winW - (margin * 2);
-    int lineHeight = Scale(30);
-    int lineGap = Scale(10);
-    int editH = Scale(26);
-    int curY = margin;
-
-    // ========== 服务器管理区域 ==========
-    CreateSectionHeader(hwnd, "服务器管理", margin, curY, contentW);
-    curY += Scale(35);
-
-    HWND hLblServer = CreateWindow("STATIC", "选择服务器:", WS_VISIBLE | WS_CHILD, 
-        margin + Scale(15), curY + Scale(3), Scale(100), Scale(20), hwnd, NULL, NULL, NULL);
-    SendMessage(hLblServer, WM_SETFONT, (WPARAM)hFontUI, TRUE);
-
-    hServerCombo = CreateWindow("COMBOBOX", "", 
-        WS_VISIBLE | WS_CHILD | WS_TABSTOP | CBS_DROPDOWNLIST | CBS_HASSTRINGS | WS_VSCROLL,
-        margin + Scale(120), curY, Scale(350), Scale(200), 
-        hwnd, (HMENU)ID_SERVER_COMBO, NULL, NULL);
-    SendMessage(hServerCombo, WM_SETFONT, (WPARAM)hFontUI, TRUE);
-
-    int btnX = margin + Scale(480);
-    int btnW = Scale(70);
-    int btnGap = Scale(8);
-
-    hServerAddBtn = CreateWindow("BUTTON", "新增", WS_VISIBLE | WS_CHILD | BS_PUSHBUTTON,
-        btnX, curY, btnW, editH, hwnd, (HMENU)ID_SERVER_ADD, NULL, NULL);
-    SendMessage(hServerAddBtn, WM_SETFONT, (WPARAM)hFontUI, TRUE);
-
-    hServerRenameBtn = CreateWindow("BUTTON", "重命名", WS_VISIBLE | WS_CHILD | BS_PUSHBUTTON,
-        btnX + btnW + btnGap, curY, btnW, editH, hwnd, (HMENU)ID_SERVER_RENAME, NULL, NULL);
-    SendMessage(hServerRenameBtn, WM_SETFONT, (WPARAM)hFontUI, TRUE);
-
-    hServerDeleteBtn = CreateWindow("BUTTON", "删除", WS_VISIBLE | WS_CHILD | BS_PUSHBUTTON,
-        btnX + (btnW + btnGap) * 2, curY, btnW, editH, hwnd, (HMENU)ID_SERVER_DELETE, NULL, NULL);
-    SendMessage(hServerDeleteBtn, WM_SETFONT, (WPARAM)hFontUI, TRUE);
-
-    curY += lineHeight + lineGap + Scale(10);
-
-    // ========== 核心配置 ==========
 void CreateControls(HWND hwnd) {
     RECT rect;
     GetClientRect(hwnd, &rect);
@@ -1445,7 +1400,6 @@ void CreateControls(HWND hwnd) {
     SendMessage(hLogEdit, WM_SETFONT, (WPARAM)hFontLog, TRUE);
     SendMessage(hLogEdit, EM_SETLIMITTEXT, 0, 0);
 }
-	
 // ========== 服务器管理函数 ==========
 
 void InitDefaultServer() {
