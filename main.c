@@ -50,7 +50,7 @@ typedef BOOL (WINAPI *SetProcessDPIAwareFunc)(void);
 #define ID_INPUT_OK 2002
 #define ID_INPUT_CANCEL 2003
 
-// 探测地址对话框控件ID
+// 获取地址对话框控件ID
 #define ID_FETCH_IP_EDIT 3001
 #define ID_FETCH_PORT_EDIT 3002
 #define ID_FETCH_DLG_OK 3003
@@ -148,7 +148,7 @@ typedef struct {
     BOOL result;
 } InputDialogData;
 
-// 探测地址对话框数据
+// 获取地址对话框数据
 typedef struct {
     char ip[64];
     char port[16];
@@ -282,7 +282,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     wcInput.hIcon = LoadIcon(NULL, IDI_APPLICATION);
     RegisterClass(&wcInput);
 
-    // 注册探测地址对话框窗口类
+    // 注册获取地址对话框窗口类
     WNDCLASS wcFetch = {0};
     wcFetch.lpfnWndProc = FetchDialogProc;
     wcFetch.hInstance = hInstance;
@@ -581,7 +581,7 @@ BOOL ShowInputDialog(HWND parent, const char* title, const char* prompt, char* b
     return data.result;
 }
 
-// ================== 探测地址对话框实现 ==================
+// ================== 获取地址对话框实现 ==================
 
 // 验证是否为 IP 地址 (IPv4 或 IPv6)
 BOOL IsValidIp(const char* ip) {
@@ -743,7 +743,7 @@ BOOL ShowFetchDialog(HWND parent, char* outIp, char* outPort) {
     HWND hDlg = CreateWindowEx(
         WS_EX_DLGMODALFRAME | WS_EX_TOPMOST,
         "FetchDialog",
-        "探测地址",
+        "获取地址",
         WS_POPUP | WS_CAPTION | WS_SYSMENU,
         x, y, dlgW, dlgH,
         parent,
@@ -1082,7 +1082,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
                     }
                     break;
 
-                // ================== 探测地址按钮逻辑 ==================
+                // ================== 获取地址按钮逻辑 ==================
                 case ID_FETCH_BTN: {
                     if (isProcessRunning) {
                         MessageBox(hwnd, "请先停止当前连接", "提示", MB_OK | MB_ICONWARNING);
@@ -1091,27 +1091,30 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
 
                     char ip[64] = {0}, port[16] = {0};
                     if (ShowFetchDialog(hwnd, ip, port)) {
-                        AppendLog("[系统] 正在探测地址，请稍候...\r\n");
-                        SetCursor(LoadCursor(NULL, IDC_WAIT));
+                        AppendLog("[系统] 正在获取地址，请稍候...\r\n");
+                        SetCursor(LoadCursor(NULL, IDC_WAIT)); // 鼠标漏斗
 
                         char extractedHost[256] = {0};
                         if (FetchHostnameFromMetrics(ip, port, extractedHost, sizeof(extractedHost))) {
+                            // 成功获取
                             char confirmMsg[512];
                             snprintf(confirmMsg, sizeof(confirmMsg), 
-                                "成功探测到服务地址：\n\n%s\n\n是否应用此地址？", extractedHost);                            
-                            if (MessageBox(hwnd, confirmMsg, "探测成功", MB_YESNO | MB_ICONQUESTION) == IDYES) {
+                                "成功获取服务地址：\n\n%s\n\n是否应用此地址？", extractedHost);                            
+                            // 弹窗确认
+                            if (MessageBox(hwnd, confirmMsg, "获取成功", MB_YESNO | MB_ICONQUESTION) == IDYES) {
                                 SetWindowText(hServerEdit, extractedHost);
                                 char log[512];
                                 snprintf(log, sizeof(log), "[系统] 服务地址已更新: %s\r\n", extractedHost);
                                 AppendLog(log);
-                                SetFocus(hServerEdit);
+                                SetFocus(hServerEdit); // 焦点回到地址框
                             } else {
                                 AppendLog("[系统] 用户取消填入地址。\r\n");
                             }
 
                         } else {
-                            AppendLog("[错误] 探测地址失败。请检查IP/端口是否正确，或网络是否通畅。\r\n");
-                            MessageBox(hwnd, "探测失败，未能找到目标主机名。", "错误", MB_OK | MB_ICONERROR);
+                            // 失败
+                            AppendLog("[错误] 获取地址失败。请检查IP/端口是否正确，或网络是否通畅。\r\n");
+                            MessageBox(hwnd, "获取失败，未能找到目标主机名。", "错误", MB_OK | MB_ICONERROR);
                         }
                         SetCursor(LoadCursor(NULL, IDC_ARROW));
                     }
@@ -1270,69 +1273,71 @@ void CreateControls(HWND hwnd) {
     CreateSectionHeader(hwnd, "核心配置", margin, curY, contentW);
     curY += Scale(35);
     
-    // ================== 四等分布局计算 ==================
+    // 计算下一行的布局参数（监听地址行），用于对齐
+    int midGap = Scale(20); 
+    int halfW = (contentW - Scale(30) - midGap) / 2; 
+    int col2X = margin + Scale(15) + halfW + midGap;
+    
+    // ================== 服务地址行布局 ==================
+    // 服务地址: [输入框(跟监听地址一样大小)] 服务端口: [端口输入框(到减号位置)] [空隙] [获取地址按钮(70宽)]
+    
     int leftBase = margin + Scale(15);
     int labelW = Scale(100);
-    int innerW = contentW - Scale(30);           // 可用宽度
-    int quarterW = innerW / 4;                   // 四分之一宽度
-    int halfPos = leftBase + quarterW * 2;       // 1/2 位置（端口开始）
-    int threeQuarterPos = leftBase + quarterW * 3;  // 3/4 位置（按钮开始）
-    
-    // 左列总宽度（与 CreateLabelAndEdit 兼容）
-    int col1TotalW = halfPos - leftBase - Scale(5);
-    // 第二列标签宽度（与"并发连接:"对齐）
-    int col2LabelW = Scale(80);
-
-    // ================== 第一行：服务地址 | 端口 | 探测地址 ==================
+    int labelGap = Scale(10);
     
     // 服务地址标签
     HWND hLblAddr = CreateWindow("STATIC", "服务地址:", WS_VISIBLE | WS_CHILD | SS_LEFT, 
         leftBase, curY + Scale(3), labelW, Scale(20), hwnd, NULL, NULL, NULL);
     SendMessage(hLblAddr, WM_SETFONT, (WPARAM)hFontUI, TRUE);
 
-    // 服务地址输入框（和监听地址输入框宽度一致）
-    int hostEditW = col1TotalW - labelW - Scale(10);
+    // 服务地址输入框 - 跟监听地址一样的宽度 (halfW - labelW - labelGap)
+    int hostEditW = halfW - labelW - labelGap;
+    int hostEditX = leftBase + labelW + labelGap;
     hServerEdit = CreateWindow("EDIT", "", 
         WS_VISIBLE | WS_CHILD | WS_TABSTOP | WS_BORDER | ES_AUTOHSCROLL, 
-        leftBase + labelW + Scale(10), curY, hostEditW, editH, hwnd, (HMENU)ID_SERVER_EDIT, NULL, NULL);
+        hostEditX, curY, hostEditW, editH, hwnd, (HMENU)ID_SERVER_EDIT, NULL, NULL);
     SendMessage(hServerEdit, WM_SETFONT, (WPARAM)hFontUI, TRUE);
     SendMessage(hServerEdit, EM_SETLIMITTEXT, MAX_URL_LEN, 0);
 
-    // 端口标签（从 1/2 位置开始，与并发连接对齐）
-    HWND hLblPort = CreateWindow("STATIC", "端口:", WS_VISIBLE | WS_CHILD | SS_LEFT, 
-        halfPos, curY + Scale(3), col2LabelW, Scale(20), hwnd, NULL, NULL, NULL);
+    // 服务端口标签 - 从col2X开始（跟并发连接对齐）
+    HWND hLblPort = CreateWindow("STATIC", "服务端口:", WS_VISIBLE | WS_CHILD | SS_LEFT, 
+        col2X, curY + Scale(3), Scale(80), Scale(20), hwnd, NULL, NULL, NULL);
     SendMessage(hLblPort, WM_SETFONT, (WPARAM)hFontUI, TRUE);
 
-    // 端口输入框（占据 1/2 到 3/4 之间的空间）
-    int portEditX = halfPos + col2LabelW + Scale(5);
-    int portEditW = threeQuarterPos - portEditX - Scale(10);
+    // 计算端口输入框宽度：到减号按钮位置
+    // 参考并发连接行: numX = col2X + Scale(85), numW = Scale(50)
+    // 减号按钮位置: numX + numW + Scale(5) = col2X + Scale(85) + Scale(50) + Scale(5) = col2X + Scale(140)
+    // 所以端口输入框从 col2X + Scale(85) 开始，到 col2X + Scale(140) 结束
+    int portEditX = col2X + Scale(85);
+    int portEditEndX = col2X + Scale(140); // 减号按钮的起始位置
+    int portEditW = portEditEndX - portEditX;
+    
     hServerPortEdit = CreateWindow("EDIT", "", 
         WS_VISIBLE | WS_CHILD | WS_TABSTOP | WS_BORDER | ES_NUMBER | ES_CENTER, 
         portEditX, curY, portEditW, editH, hwnd, (HMENU)ID_SERVER_PORT_EDIT, NULL, NULL);
     SendMessage(hServerPortEdit, WM_SETFONT, (WPARAM)hFontUI, TRUE);
     SendMessage(hServerPortEdit, EM_SETLIMITTEXT, 6, 0);
 
-    // 探测地址按钮（从 3/4 位置开始）
-    int fetchBtnW = leftBase + innerW - threeQuarterPos;
-    hFetchBtn = CreateWindow("BUTTON", "探测地址", WS_VISIBLE | WS_CHILD | BS_PUSHBUTTON,
-        threeQuarterPos, curY, fetchBtnW, editH, hwnd, (HMENU)ID_FETCH_BTN, NULL, NULL);
+    // 获取地址按钮 - 跟新增/重命名/删除按钮一样大小(btnW = Scale(70))
+    // 空隙跟监听地址输入框和并发连接中间的空隙一样(midGap = Scale(20))
+    int fetchBtnW = btnW; // Scale(70)，跟上面三个按钮一样
+    int fetchBtnX = portEditX + portEditW + midGap;
+    
+    hFetchBtn = CreateWindow("BUTTON", "获取地址", WS_VISIBLE | WS_CHILD | BS_PUSHBUTTON,
+        fetchBtnX, curY, fetchBtnW, editH, hwnd, (HMENU)ID_FETCH_BTN, NULL, NULL);
     SendMessage(hFetchBtn, WM_SETFONT, (WPARAM)hFontUI, TRUE);
 
     curY += lineHeight + lineGap;
 
-    // ================== 第二行：监听地址 | 并发连接 ==================
+    // ================== 监听地址行 ==================
+    CreateLabelAndEdit(hwnd, "监听地址:", margin + Scale(15), curY, halfW, editH, ID_LISTEN_EDIT, &hListenEdit, FALSE);
     
-    // 监听地址（使用相同的 col1TotalW，确保和服务地址对齐）
-    CreateLabelAndEdit(hwnd, "监听地址:", leftBase, curY, col1TotalW, editH, ID_LISTEN_EDIT, &hListenEdit, FALSE);
-    
-    // 并发连接标签（从 halfPos 开始，与端口标签对齐）
-    HWND hLbl = CreateWindow("STATIC", "并发连接:", WS_VISIBLE | WS_CHILD, 
-        halfPos, curY + Scale(3), col2LabelW, Scale(20), hwnd, NULL, NULL, NULL);
+    HWND hLbl = CreateWindow("STATIC", "并发连接:", WS_VISIBLE | WS_CHILD, col2X, curY + Scale(3), Scale(80), Scale(20), hwnd, NULL, NULL, NULL);
     SendMessage(hLbl, WM_SETFONT, (WPARAM)hFontUI, TRUE);
 
     int btnSize = Scale(26);
     int numW = Scale(50);
-    int numX = halfPos + col2LabelW + Scale(5);
+    int numX = col2X + Scale(85);
 
     hConnEdit = CreateWindow("EDIT", "3", WS_VISIBLE | WS_CHILD | WS_BORDER | ES_NUMBER | ES_CENTER, 
         numX, curY, numW, editH, hwnd, (HMENU)ID_CONN_EDIT, NULL, NULL);
@@ -1348,14 +1353,9 @@ void CreateControls(HWND hwnd) {
 
     curY += lineHeight + lineGap + Scale(10);
 
-    // ========== 高级选项（保持原有二等分布局）==========
+    // ========== 高级选项 ==========
     CreateSectionHeader(hwnd, "高级选项 (可选)", margin, curY, contentW);
     curY += Scale(35);
-
-    // 高级选项使用原有的两列布局
-    int midGap = Scale(20); 
-    int halfW = (contentW - Scale(30) - midGap) / 2; 
-    int col2X = margin + Scale(15) + halfW + midGap;
 
     CreateLabelAndEdit(hwnd, "身份令牌:", margin + Scale(15), curY, contentW - Scale(30), editH, ID_TOKEN_EDIT, &hTokenEdit, FALSE);
     curY += lineHeight + lineGap;
@@ -1389,6 +1389,7 @@ void CreateControls(HWND hwnd) {
     SendMessage(hStopBtn, WM_SETFONT, (WPARAM)hFontUI, TRUE);
     EnableWindow(hStopBtn, FALSE);
 
+    // 开机启动复选框
     hAutoStartCheck = CreateWindow("BUTTON", "开机启动", 
         WS_VISIBLE | WS_CHILD | WS_TABSTOP | BS_AUTOCHECKBOX,
         startX + btnW2 * 2 + btnGap2 * 2, curY + Scale(10), Scale(100), Scale(22), 
