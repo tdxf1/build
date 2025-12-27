@@ -1301,9 +1301,15 @@ void CreateControls(HWND hwnd) {
     SendMessage(hServerEdit, EM_SETLIMITTEXT, MAX_URL_LEN, 0);
 
     // ===== 端口标签、端口输入框、获取地址按钮 =====
-    int portLabelW = Scale(80);
-    HWND hLblPort = CreateWindow("STATIC", "端口:", WS_VISIBLE | WS_CHILD | SS_RIGHT, 
-        col2X, curY + Scale(3), portLabelW, Scale(20), hwnd, NULL, NULL, NULL);
+    // "端口"对齐"并发"，":"对齐":"
+    // 并发连接标签从col2X开始，宽度Scale(80)，其中"并发连接"四个字约占Scale(65)，":"在后面
+    // "端口" 两个字约占 Scale(35)，后面跟":"
+    int portTextW = Scale(35);  // "端口"两个字
+    int colonX = col2X + Scale(65);  // ":"的位置，跟"并发连接:"的":"对齐
+    int portLabelX = colonX - portTextW;  // "端口"开始位置
+    
+    HWND hLblPort = CreateWindow("STATIC", "端口:", WS_VISIBLE | WS_CHILD | SS_LEFT, 
+        portLabelX, curY + Scale(3), portTextW + Scale(15), Scale(20), hwnd, NULL, NULL, NULL);
     SendMessage(hLblPort, WM_SETFONT, (WPARAM)hFontUI, TRUE);
 
     // 端口输入框 - 从numX开始，到减号按钮结束位置
@@ -1315,10 +1321,10 @@ void CreateControls(HWND hwnd) {
     SendMessage(hServerPortEdit, WM_SETFONT, (WPARAM)hFontUI, TRUE);
     SendMessage(hServerPortEdit, EM_SETLIMITTEXT, 5, 0);
 
-    // 获取地址按钮 - 合理的间隙和宽度
-    int fetchGap = Scale(35);   // 间隙长一些
-    int fetchBtnW = Scale(85);  // 合理的按钮宽度
-    int fetchBtnX = minusBtnEndX + fetchGap;
+    // 获取地址按钮 - 从"获取地址"的"地址"位置开始
+    // 按钮宽度Scale(85)，"获取"约占一半Scale(42)，所以按钮起始位置前移Scale(42)
+    int fetchBtnW = Scale(85);
+    int fetchBtnX = minusBtnEndX + Scale(35) + Scale(42);  // 间隙 + "获取"的宽度
     hFetchBtn = CreateWindow("BUTTON", "获取地址", WS_VISIBLE | WS_CHILD | BS_PUSHBUTTON,
         fetchBtnX, curY, fetchBtnW, editH, hwnd, (HMENU)ID_FETCH_BTN, NULL, NULL);
     SendMessage(hFetchBtn, WM_SETFONT, (WPARAM)hFontUI, TRUE);
@@ -1407,6 +1413,7 @@ void CreateControls(HWND hwnd) {
     SendMessage(hLogEdit, WM_SETFONT, (WPARAM)hFontUI, TRUE);
     SendMessage(hLogEdit, EM_SETLIMITTEXT, 0, 0);
 }
+
 // ========== 服务器管理函数 ==========
 
 void InitDefaultServer() {
