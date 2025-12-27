@@ -1273,69 +1273,64 @@ void CreateControls(HWND hwnd) {
     CreateSectionHeader(hwnd, "核心配置", margin, curY, contentW);
     curY += Scale(35);
     
-    // 先计算通用布局参数（跟监听地址行一致）
-    int midGap = Scale(20); 
-    int halfW = (contentW - Scale(30) - midGap) / 2; 
-    int col2X = margin + Scale(15) + halfW + midGap;
-    
-    // 计算下一行的关键位置（用于对齐）
-    int btnSize = Scale(26);
-    int numW = Scale(50);
-    int numX = col2X + Scale(85);
-    int minusBtnEndX = numX + numW + Scale(5) + btnSize; // 减号按钮结束位置
-    
-    // ================== 服务地址行布局 ==================
-    // 服务地址 和 服务地址输入框 保持不变（跟监听地址对齐）
-    
+    // ================== 布局： Label(100) | Host(Flex) | :(10) | Port(60) | gap(10) | FetchBtn(105) | rightMargin(15) ==================
+    int leftBase = margin + Scale(15);
+    int rightLimit = rect.right - margin - Scale(15);  // 右边距与"服务地址："到左边距相同
+    int btnFetchW = Scale(105);  // 按钮长度变为1.5倍 (原70*1.5=105)
+    int portW = Scale(60);
+    int colonW = Scale(10);
+    int labelW = Scale(100);
+    int gapLabelToEdit = Scale(10);  // "服务地址："到输入框的距离
+    int gapPortToBtn = Scale(10);    // 端口输入框到获取地址按钮的距离（与上面相同）
+    int hostW = rightLimit - leftBase - labelW - gapLabelToEdit - colonW - portW - gapPortToBtn - btnFetchW;
+
+    // 1. Label
     HWND hLblAddr = CreateWindow("STATIC", "服务地址:", WS_VISIBLE | WS_CHILD | SS_LEFT, 
-        margin + Scale(15), curY + Scale(3), Scale(100), Scale(20), hwnd, NULL, NULL, NULL);
+        leftBase, curY + Scale(3), labelW, Scale(20), hwnd, NULL, NULL, NULL);
     SendMessage(hLblAddr, WM_SETFONT, (WPARAM)hFontUI, TRUE);
 
-    // 服务地址输入框 - 跟监听地址输入框一样的位置和宽度
-    int hostEditX = margin + Scale(15) + Scale(110);
-    int hostEditW = halfW - Scale(110);
+    // 2. Host Edit (ID_SERVER_EDIT)
+    int curX = leftBase + labelW + gapLabelToEdit;
     hServerEdit = CreateWindow("EDIT", "", 
         WS_VISIBLE | WS_CHILD | WS_TABSTOP | WS_BORDER | ES_AUTOHSCROLL, 
-        hostEditX, curY, hostEditW, editH, hwnd, (HMENU)ID_SERVER_EDIT, NULL, NULL);
+        curX, curY, hostW, editH, hwnd, (HMENU)ID_SERVER_EDIT, NULL, NULL);
     SendMessage(hServerEdit, WM_SETFONT, (WPARAM)hFontUI, TRUE);
     SendMessage(hServerEdit, EM_SETLIMITTEXT, MAX_URL_LEN, 0);
 
-    // ===== 端口标签、端口输入框、获取地址按钮 =====
-    // "端口"对齐"并发"，":"对齐":"
-    // 并发连接标签从col2X开始，宽度Scale(80)，其中"并发连接"四个字约占Scale(65)，":"在后面
-    // "端口" 两个字约占 Scale(35)，后面跟":"
-    int portTextW = Scale(35);  // "端口"两个字
-    int colonX = col2X + Scale(65);  // ":"的位置，跟"并发连接:"的":"对齐
-    int portLabelX = colonX - portTextW;  // "端口"开始位置
-    
-    HWND hLblPort = CreateWindow("STATIC", "端口:", WS_VISIBLE | WS_CHILD | SS_LEFT, 
-        portLabelX, curY + Scale(3), portTextW + Scale(15), Scale(20), hwnd, NULL, NULL, NULL);
-    SendMessage(hLblPort, WM_SETFONT, (WPARAM)hFontUI, TRUE);
+    // 3. Colon Separator
+    curX += hostW;
+    HWND hColon = CreateWindow("STATIC", ":", WS_VISIBLE | WS_CHILD | SS_CENTER, 
+        curX, curY + Scale(3), colonW, Scale(20), hwnd, NULL, NULL, NULL);
+    SendMessage(hColon, WM_SETFONT, (WPARAM)hFontUI, TRUE);
 
-    // 端口输入框 - 从numX开始，到减号按钮结束位置
-    int portEditX = numX;
-    int portEditW = minusBtnEndX - portEditX;
+    // 4. Port Edit (ID_SERVER_PORT_EDIT)
+    curX += colonW;
     hServerPortEdit = CreateWindow("EDIT", "", 
         WS_VISIBLE | WS_CHILD | WS_TABSTOP | WS_BORDER | ES_NUMBER | ES_CENTER, 
-        portEditX, curY, portEditW, editH, hwnd, (HMENU)ID_SERVER_PORT_EDIT, NULL, NULL);
+        curX, curY, portW, editH, hwnd, (HMENU)ID_SERVER_PORT_EDIT, NULL, NULL);
     SendMessage(hServerPortEdit, WM_SETFONT, (WPARAM)hFontUI, TRUE);
-    SendMessage(hServerPortEdit, EM_SETLIMITTEXT, 5, 0);
+    SendMessage(hServerPortEdit, EM_SETLIMITTEXT, 6, 0);
 
-    // 获取地址按钮 - 从"获取地址"的"地址"位置开始
-    // 按钮宽度Scale(85)，"获取"约占一半Scale(42)，所以按钮起始位置前移Scale(42)
-    int fetchBtnW = Scale(85);
-    int fetchBtnX = minusBtnEndX + Scale(35) + Scale(42);  // 间隙 + "获取"的宽度
+    // 5. Fetch Button
+    curX += portW + gapPortToBtn;
     hFetchBtn = CreateWindow("BUTTON", "获取地址", WS_VISIBLE | WS_CHILD | BS_PUSHBUTTON,
-        fetchBtnX, curY, fetchBtnW, editH, hwnd, (HMENU)ID_FETCH_BTN, NULL, NULL);
+        curX, curY, btnFetchW, editH, hwnd, (HMENU)ID_FETCH_BTN, NULL, NULL);
     SendMessage(hFetchBtn, WM_SETFONT, (WPARAM)hFontUI, TRUE);
 
     curY += lineHeight + lineGap;
+	
+    int midGap = Scale(20); 
+    int halfW = (contentW - Scale(30) - midGap) / 2; 
+    int col2X = margin + Scale(15) + halfW + midGap;
 
-    // ================== 监听地址行（保持不变）==================
     CreateLabelAndEdit(hwnd, "监听地址:", margin + Scale(15), curY, halfW, editH, ID_LISTEN_EDIT, &hListenEdit, FALSE);
     
     HWND hLbl = CreateWindow("STATIC", "并发连接:", WS_VISIBLE | WS_CHILD, col2X, curY + Scale(3), Scale(80), Scale(20), hwnd, NULL, NULL, NULL);
     SendMessage(hLbl, WM_SETFONT, (WPARAM)hFontUI, TRUE);
+
+    int btnSize = Scale(26);
+    int numW = Scale(50);
+    int numX = col2X + Scale(85);
 
     hConnEdit = CreateWindow("EDIT", "3", WS_VISIBLE | WS_CHILD | WS_BORDER | ES_NUMBER | ES_CENTER, 
         numX, curY, numW, editH, hwnd, (HMENU)ID_CONN_EDIT, NULL, NULL);
@@ -1410,7 +1405,7 @@ void CreateControls(HWND hwnd) {
     hLogEdit = CreateWindow("EDIT", "", 
         WS_VISIBLE | WS_CHILD | WS_BORDER | WS_VSCROLL | ES_MULTILINE | ES_READONLY, 
         margin, curY, winW - (margin * 2), logH, hwnd, (HMENU)ID_LOG_EDIT, NULL, NULL);
-    SendMessage(hLogEdit, WM_SETFONT, (WPARAM)hFontUI, TRUE);
+    SendMessage(hLogEdit, WM_SETFONT, (WPARAM)hFontLog, TRUE);
     SendMessage(hLogEdit, EM_SETLIMITTEXT, 0, 0);
 }
 
