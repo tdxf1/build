@@ -1277,7 +1277,7 @@ void CreateControls(HWND hwnd) {
     int leftBase = margin + Scale(15);
     int rightMargin = Scale(15);  // 按钮右边距与"服务地址："到左边距相同
     int btnFetchW = Scale(105);   // 按钮长度1.5倍
-    int portW = Scale(60);
+    int portW = Scale(90);        // 端口框放大1.5倍 (原60*1.5=90)
     int colonW = Scale(10);
     int labelW = Scale(100);
     int gapLabelToEdit = Scale(10);
@@ -1312,7 +1312,7 @@ void CreateControls(HWND hwnd) {
     SendMessage(hServerPortEdit, EM_SETLIMITTEXT, 6, 0);
 
     // 5. Fetch Button
-    curX += portW + visualGap;  // 使用视觉间距
+    curX += portW + visualGap;
     hFetchBtn = CreateWindow("BUTTON", "获取地址", WS_VISIBLE | WS_CHILD | BS_PUSHBUTTON,
         curX, curY, btnFetchW, editH, hwnd, (HMENU)ID_FETCH_BTN, NULL, NULL);
     SendMessage(hFetchBtn, WM_SETFONT, (WPARAM)hFontUI, TRUE);
