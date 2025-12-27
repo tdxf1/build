@@ -1275,14 +1275,29 @@ void CreateControls(HWND hwnd) {
     
     // ================== 布局： Label | Host(Flex) | : | Port | FetchBtn ==================
     int leftBase = margin + Scale(15);
-    int rightMargin = Scale(15);  // 按钮右边距与"服务地址："到左边距相同
     int btnFetchW = Scale(105);   // 按钮长度1.5倍
-    int portW = Scale(90);        // 端口框放大1.5倍 (原60*1.5=90)
+    int portW = Scale(90);        // 端口框1.5倍
     int colonW = Scale(10);
     int labelW = Scale(100);
     int gapLabelToEdit = Scale(10);
-    int visualGap = (labelW - Scale(65)) + gapLabelToEdit;  // "服务地址："实际约65宽，视觉间距约 Scale(45)
-    int hostW = (rect.right - margin - rightMargin) - leftBase - labelW - gapLabelToEdit - colonW - portW - visualGap - btnFetchW;
+    int visualGap = (labelW - Scale(65)) + gapLabelToEdit;  // 视觉间距约 Scale(45)
+    
+    // 计算下一行加号结束位置，用于对齐端口框结束位置
+    int midGapTemp = Scale(20);
+    int halfWTemp = (contentW - Scale(30) - midGapTemp) / 2;
+    int col2XTemp = margin + Scale(15) + halfWTemp + midGapTemp;
+    int plusEndX = col2XTemp + Scale(85) + Scale(50) + Scale(5) + Scale(26) + Scale(5) + Scale(26);
+    
+    // 端口框结束位置 = plusEndX，所以端口框起始位置 = plusEndX - portW
+    // 冒号起始位置 = plusEndX - portW - colonW
+    // 地址框结束位置 = plusEndX - portW - colonW
+    // 地址框宽度 = 地址框结束位置 - 地址框起始位置
+    int hostEditStart = leftBase + labelW + gapLabelToEdit;
+    int hostW = (plusEndX - portW - colonW) - hostEditStart;
+    
+    // 按钮起始位置
+    int btnStartX = plusEndX + visualGap;
+    // 按钮右边距 = rect.right - margin - (btnStartX + btnFetchW)，多余空间自动加到右边距
 
     // 1. Label
     HWND hLblAddr = CreateWindow("STATIC", "服务地址:", WS_VISIBLE | WS_CHILD | SS_LEFT, 
@@ -1290,7 +1305,7 @@ void CreateControls(HWND hwnd) {
     SendMessage(hLblAddr, WM_SETFONT, (WPARAM)hFontUI, TRUE);
 
     // 2. Host Edit
-    int curX = leftBase + labelW + gapLabelToEdit;
+    int curX = hostEditStart;
     hServerEdit = CreateWindow("EDIT", "", 
         WS_VISIBLE | WS_CHILD | WS_TABSTOP | WS_BORDER | ES_AUTOHSCROLL, 
         curX, curY, hostW, editH, hwnd, (HMENU)ID_SERVER_EDIT, NULL, NULL);
@@ -1311,10 +1326,9 @@ void CreateControls(HWND hwnd) {
     SendMessage(hServerPortEdit, WM_SETFONT, (WPARAM)hFontUI, TRUE);
     SendMessage(hServerPortEdit, EM_SETLIMITTEXT, 6, 0);
 
-    // 5. Fetch Button
-    curX += portW + visualGap;
+    // 5. Fetch Button (右边距自动增加)
     hFetchBtn = CreateWindow("BUTTON", "获取地址", WS_VISIBLE | WS_CHILD | BS_PUSHBUTTON,
-        curX, curY, btnFetchW, editH, hwnd, (HMENU)ID_FETCH_BTN, NULL, NULL);
+        btnStartX, curY, btnFetchW, editH, hwnd, (HMENU)ID_FETCH_BTN, NULL, NULL);
     SendMessage(hFetchBtn, WM_SETFONT, (WPARAM)hFontUI, TRUE);
 
     curY += lineHeight + lineGap;
